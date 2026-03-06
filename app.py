@@ -159,12 +159,21 @@ stTextArea textarea {
 
 # ── Keyword lists ─────────────────────────────────────────────
 URGENCY_KEYWORDS = [
-    "immediately", "urgent", "asap", "right away", "act now",
-    "within 24 hours", "within 48 hours", "expire", "expires",
-    "final notice", "warning", "alert", "critical", "failure to",
-    "will be deleted", "will be suspended", "will be terminated",
-    "will be cancelled", "will be closed", "last chance",
-    "limited time", "do not delay", "do not ignore"
+"immediately", "urgent", "asap", "right away", "act now",
+    "within 24 hours", "within 48 hours", "within 12 hours",
+    "within 6 hours", "within 7 days",
+    "expire", "expires", "will expire", "will expire in",
+    "expire in 24", "expire in 48", "expiring soon",
+    "final notice", "warning", "alert", "critical",
+    "failure to", "will be deleted", "will be suspended",
+    "will be terminated", "will be cancelled", "will be closed",
+    "last chance", "limited time", "do not delay", "do not ignore",
+    "password will expire", "account will expire",
+    "update your password", "reset your password",
+    "verify your identity", "confirm your identity",
+    "update immediately", "respond immediately",
+    "click the link below", "follow the link below",
+    "click here immediately", "take action now"
 ]
 
 AUTHORITY_KEYWORDS = [
@@ -197,8 +206,10 @@ COMMON_MISSPELLINGS = [
 
 GREETING_NAMED    = re.compile(r"^(hi|hello|dear|hey)\s+[A-Z][a-z]+", re.I)
 GREETING_GENERIC  = re.compile(
-    r"^(dear\s+(valued|customer|user|member|sir|madam|winner|all|team)"
-    r"|hello\s+dear|to whom|dear\s+taxpayer|apple\s+user)", re.I)
+    r"^(dear\s+(valued|customer|user|member|sir|madam|winner|all|team"
+    r"|network\s+user|account\s+holder|subscriber|colleague|employee)"
+    r"|hello\s+dear|to whom|dear\s+taxpayer|apple\s+user"
+    r"|dear\s+all|attention\s+user|greetings\s+user)", re.I)
 CLOSING_PATTERNS  = re.compile(
     r"^(regards|best|sincerely|cheers|thanks|thank you|warm regards|"
     r"kind regards|yours|respectfully|cordially|best wishes)", re.I)
@@ -369,28 +380,51 @@ def compute_bmi(features):
 
 # ── Rule-based classifier ─────────────────────────────────────
 def classify_email(features, bmi):
-    g = features["grammar_errors"]
-    s = features["spelling_errors"]
-    u = features["urgency_score"]
-    p = features["personalization"]
-    gr= features["greeting_realism"]
-    sr= features["sig_realism"]
+    g               = features["grammar_errors"]
+    s               = features["spelling_errors"]
+    u               = features["urgency_score"]
+    p               = features["personalization"]
+    gr              = features["greeting_realism"]
+    sr              = features["sig_realism"]
     suspicious_urls = features["suspicious_urls"]
+    urls            = features["url_count"]
 
-    # Strong signals for Traditional Phishing
-    if (g >= 3 or s >= 3) and u >= 0.4:
+    # ── Rule 1: Traditional Phishing ──────────────────────────
+    # High errors OR very generic with urgency
+    if (g >= 3 or s >= 3) and u >= 0.2:
         return 1, "Traditional Phishing"
 
-    # Strong signals for Legitimate
-    if g == 0 and s == 0 and u <= 0.2 and bmi >= 0.65:
-        return 0, "Legitimate"
+    # Generic greeting + urgency + no signature = traditional
+    if gr <= 0.3 and u >= 0.2 and sr < 0.3:
+        return 1, "Traditional Phishing"
 
-    # AI Phishing: low errors, high behavioural scores, some urgency
-    if g <= 1 and s <= 1 and (u > 0.2 or suspicious_urls > 0) and bmi >= 0.45:
+    # ── Rule 2: AI Phishing ───────────────────────────────────
+    # Low errors + any urgency + URL present = AI phishing
+    if g <= 1 and s <= 1 and u >= 0.2 and urls >= 1:
         return 2, "AI-Generated Phishing"
 
-    # Fallback: use BMI thresholds
-    if bmi >= 0.65:
+    # Low errors + urgency even without URL = suspicious
+    if g <= 1 and s <= 1 and u >= 0.3:
+        return 2, "AI-Generated Phishing"
+
+    # Suspicious URL regardless of other signals
+    if suspicious_urls > 0:
+        return 2, "AI-Generated Phishing"
+
+    # ── Rule 3: Legitimate ────────────────────────────────────
+    # Only legitimate if: no errors, low urgency, well-signed
+    if g == 0 and s == 0 and u <= 0.15 and bmi >= 0.65:
+        return 0, "Legitimate"
+
+    # ── Fallback: BMI thresholds ──────────────────────────────
+    if u >= 0.2:
+        # Any urgency pushes toward phishing
+        if g <= 1 and s <= 1:
+            return 2, "AI-Generated Phishing"
+        else:
+            return 1, "Traditional Phishing"
+
+    if bmi >= 0.70:
         return 0, "Legitimate"
     elif bmi >= 0.40:
         return 2, "AI-Generated Phishing"
