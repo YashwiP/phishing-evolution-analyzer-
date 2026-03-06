@@ -1,4 +1,4 @@
-# 🛡️ Phishing Evolution Analyzer
+# Phishing Evolution Analyzer
 ### Behaviour-Aware Detection of AI-Generated Phishing Emails
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
@@ -10,14 +10,14 @@
 
 ---
 
-## 📌 Overview
+## Overview
 
 Phishing emails have evolved. Traditional spam filters were built to catch emails with **bad grammar and spelling mistakes**. But modern attackers now use AI tools to generate phishing emails that are:
 
-- ✅ Grammatically perfect
-- ✅ Professionally written and signed
-- ✅ Personalized with real names and contextual details
-- ✅ Indistinguishable from legitimate emails — to grammar-based detectors
+- Grammatically perfect
+- Professionally written and signed
+- Personalized with real names and contextual details
+- Indistinguishable from legitimate emails — to grammar-based detectors
 
 This project builds a **behaviour-aware detection system** that goes beyond grammar checking. It introduces a novel metric — the **Behavioural Mimicry Index (BMI)** — that measures how well a phishing email mimics legitimate communication behaviour.
 
@@ -25,7 +25,7 @@ This project builds a **behaviour-aware detection system** that goes beyond gram
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 
 | Goal | Description |
 |------|-------------|
@@ -37,7 +37,7 @@ This project builds a **behaviour-aware detection system** that goes beyond gram
 
 ---
 
-## 🧠 The Behavioural Mimicry Index (BMI)
+## The Behavioural Mimicry Index (BMI)
 
 The BMI is the **novel contribution** of this research. It is a single score (0.0 – 1.0) that quantifies how convincingly an email mimics legitimate behaviour.
 
@@ -98,7 +98,7 @@ BMI = (Personalization Score   × 0.20)
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 phishing-evolution-analyzer/
@@ -138,7 +138,7 @@ phishing-evolution-analyzer/
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 ### Option 1 — Google Colab (Recommended for full pipeline)
 1. Open `Phishing_Evolution_Analyzer.ipynb` in Google Colab
@@ -170,7 +170,7 @@ Then open `http://localhost:8501` in your browser.
 
 ---
 
-## 🧪 Technical Stack
+## Technical Stack
 
 | Tool | Purpose |
 |------|---------|
@@ -187,9 +187,9 @@ Then open `http://localhost:8501` in your browser.
 
 ---
 
-## 📈 Key Results
+## Key Results
 
-> ⚠️ Results are based on the research prototype dataset (30 emails).
+> Results are based on the research prototype dataset (30 emails).
 > The pattern of findings — not absolute numbers — is the research contribution.
 
 **AI Phishing Recall Comparison:**
@@ -206,7 +206,7 @@ with BMI measurably improves AI phishing recall — validating the research hypo
 
 ---
 
-## 🔬 Research Context
+## Research Context
 
 This project supports an **IEEE-style research paper** titled:
 
@@ -223,23 +223,22 @@ combined system achieves improved detection across all three email classes.
 
 ---
 
-## 🙋 Author
+## Author
 
-**[Your Name]**
-- 📧 your.email@university.edu
-- 🔗 [LinkedIn](https://linkedin.com/in/yourprofile)
-- 🐙 [GitHub](https://github.com/yourusername)
+**Yashwi Pandey**
+- pandeyyashwii@gmail.com
+- 🔗 [LinkedIn](https://www.linkedin.com/in/yashwi-pandey/)
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 Free to use for research and educational purposes with attribution.
 
 ---
 
-## ⭐ If You Found This Useful
+## If You Found This Useful
 
 Give this repository a ⭐ — it helps other researchers find the project.
 
