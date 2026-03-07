@@ -159,21 +159,29 @@ stTextArea textarea {
 
 # ── Keyword lists ─────────────────────────────────────────────
 URGENCY_KEYWORDS = [
-"immediately", "urgent", "asap", "right away", "act now",
+    # Time pressure threats
+    "immediately", "urgent", "asap",
+    "act now", "act immediately",
     "within 24 hours", "within 48 hours", "within 12 hours",
-    "within 6 hours", "within 7 days",
-    "expire", "expires", "will expire", "will expire in",
-    "expire in 24", "expire in 48", "expiring soon",
-    "final notice", "warning", "alert", "critical",
-    "failure to", "will be deleted", "will be suspended",
-    "will be terminated", "will be cancelled", "will be closed",
-    "last chance", "limited time", "do not delay", "do not ignore",
-    "password will expire", "account will expire",
-    "update your password", "reset your password",
-    "verify your identity", "confirm your identity",
-    "update immediately", "respond immediately",
-    "click the link below", "follow the link below",
-    "click here immediately", "take action now"
+    "within 6 hours", "expire in 24", "expire in 48",
+    "last chance", "final notice", "do not delay",
+
+    # Account threat language
+    "will be deleted", "will be suspended",
+    "will be terminated", "will be cancelled",
+    "will be closed", "will be deactivated",
+    "will lose access", "will be locked",
+    "permanently suspended", "permanently deleted",
+
+    # Threat consequences
+    "failure to act", "failure to respond",
+    "failure to verify", "failure to confirm",
+    "failure to update",
+
+    # Imperative threats (only aggressive ones)
+    "do not ignore", "do not miss",
+    "respond immediately", "verify immediately",
+    "confirm immediately", "update immediately",
 ]
 
 AUTHORITY_KEYWORDS = [
@@ -380,6 +388,12 @@ def compute_bmi(features):
 
 # ── Rule-based classifier ─────────────────────────────────────
 def classify_email(features, bmi):
+    """
+    Scoring-based classifier.
+    Accumulates evidence points for each class.
+    The class with most points wins.
+    This is more robust than hard if/else rules.
+    """
     g               = features["grammar_errors"]
     s               = features["spelling_errors"]
     u               = features["urgency_score"]
@@ -389,47 +403,143 @@ def classify_email(features, bmi):
     suspicious_urls = features["suspicious_urls"]
     urls            = features["url_count"]
 
-    # ── Rule 1: Traditional Phishing ──────────────────────────
-    # High errors OR very generic with urgency
-    if (g >= 3 or s >= 3) and u >= 0.2:
-        return 1, "Traditional Phishing"
+    score_legit = 0
+    score_trad  = 0
+    score_ai    = 0
 
-    # Generic greeting + urgency + no signature = traditional
-    if gr <= 0.3 and u >= 0.2 and sr < 0.3:
-        return 1, "Traditional Phishing"
-
-    # ── Rule 2: AI Phishing ───────────────────────────────────
-    # Low errors + any urgency + URL present = AI phishing
-    if g <= 1 and s <= 1 and u >= 0.2 and urls >= 1:
-        return 2, "AI-Generated Phishing"
-
-    # Low errors + urgency even without URL = suspicious
-    if g <= 1 and s <= 1 and u >= 0.3:
-        return 2, "AI-Generated Phishing"
-
-    # Suspicious URL regardless of other signals
-    if suspicious_urls > 0:
-        return 2, "AI-Generated Phishing"
-
-    # ── Rule 3: Legitimate ────────────────────────────────────
-    # Only legitimate if: no errors, low urgency, well-signed
-    if g == 0 and s == 0 and u <= 0.15 and bmi >= 0.65:
-        return 0, "Legitimate"
-
-    # ── Fallback: BMI thresholds ──────────────────────────────
-    if u >= 0.2:
-        # Any urgency pushes toward phishing
-        if g <= 1 and s <= 1:
-            return 2, "AI-Generated Phishing"
-        else:
-            return 1, "Traditional Phishing"
-
-    if bmi >= 0.70:
-        return 0, "Legitimate"
-    elif bmi >= 0.40:
-        return 2, "AI-Generated Phishing"
+    # ── Grammar & Spelling (strongest signals) ─────────────
+    if g == 0 and s == 0:
+        score_legit += 3
+        score_ai    += 2   # AI also has clean grammar
+    elif g <= 2 and s <= 2:
+        score_ai    += 1
+        score_trad  += 1
     else:
+        score_trad  += 4   # Many errors = strong trad signal
+
+    # ── Urgency (only HIGH urgency is suspicious) ──────────
+    if u == 0:
+        score_legit += 3   # No urgency = very likely legit
+    elif u <= 0.2:
+        score_legit += 1   # Mild urgency = probably still legit
+        score_ai    += 1
+    elif u <= 0.5:
+        score_ai    += 2   # Moderate urgency = AI phishing
+        score_trad  += 1
+    else:
+        score_trad  += 3   # High urgency = traditional phishing
+        score_ai    += 1
+
+    # ── Greeting realism ───────────────────────────────────
+    if gr == 1.0:
+        score_legit += 2
+        score_ai    += 2   # AI also uses named greetings
+    elif gr == 0.5:
+        score_legit += 1
+    elif gr <= 0.3:
+        score_trad  += 2   # Generic greeting = trad phishing
+
+    # ── Signature realism ──────────────────────────────────
+    if sr >= 0.7:
+        score_legit += 2
+        score_ai    += 1
+    elif sr >= 0.3:
+        score_legit += 1
+    else:
+        score_trad  += 1
+
+    # ── Personalization ────────────────────────────────────
+    if p >= 0.7:
+        score_legit += 2
+        score_ai    += 2
+    elif p >= 0.3:
+        score_legit += 1
+        score_ai    += 1
+
+    # ── Suspicious URLs (strong phishing signal) ───────────
+    if suspicious_urls > 0:
+        if g >= 2 or s >= 2:
+            score_trad += 4
+        else:
+            score_ai   += 4
+
+    # ── Regular URLs (weak signal alone) ──────────────────
+    elif urls > 0:
+        if u == 0:
+            score_legit += 1  # URL + no urgency = legit
+        elif u > 0.2:
+            score_ai    += 1  # URL + some urgency = suspicious
+
+    # ── BMI as tiebreaker ──────────────────────────────────
+    if bmi >= 0.75:
+        score_legit += 2
+    elif bmi >= 0.55:
+        score_legit += 1
+        score_ai    += 1
+    elif bmi >= 0.35:
+        score_ai    += 1
+        score_trad  += 1
+    else:
+        score_trad  += 2
+
+    # ── Strong override rules ──────────────────────────────
+    # If MANY grammar+spelling errors → always traditional
+    if g + s >= 5:
         return 1, "Traditional Phishing"
+
+    # If zero urgency, zero suspicious URLs, clean grammar → legitimate
+    if u == 0 and suspicious_urls == 0 and g <= 1 and s <= 1:
+        return 0, "Legitimate"
+
+    # ── Final decision: highest score wins ─────────────────
+    scores = {
+        0: score_legit,
+        1: score_trad,
+        2: score_ai
+    }
+    label_names = {
+        0: "Legitimate",
+        1: "Traditional Phishing",
+        2: "AI-Generated Phishing"
+    }
+
+    winner = max(scores, key=scores.get)
+
+    # If it's a tie between legit and AI with no urgency → legit
+    if scores[0] == scores[2] and u <= 0.15:
+        winner = 0
+
+    return winner, label_names[winner]
+```
+
+---
+
+## Why This Fix Works
+
+The old approach used **hard if/else rules** — one condition fails and the whole chain breaks. The new approach uses **evidence accumulation** — every feature votes, and the class with the most votes wins. This is how real classifiers think.
+
+Here's how it now handles your two problem cases:
+
+**Legitimate email (e.g. Q3 project update with a URL):**
+```
+grammar=0, spelling=0  → legit +3, ai +2
+urgency=0              → legit +3        ← no urgency = big legit signal
+greeting named         → legit +2, ai +2
+good signature         → legit +2, ai +1
+URL present, no urgency→ legit +1
+BMI high               → legit +2
+override: u==0, no sus URL, clean grammar → LEGITIMATE ✅
+```
+
+**That university password email:**
+```
+grammar=0, spelling=0  → legit +3, ai +2
+urgency=0.2+ (expire)  → ai +2, trad +1
+generic greeting       → trad +2
+no signature           → trad +1
+URL present + urgency  → ai +1
+BMI ~0.5               → legit+1, ai+1
+Winner: Traditional or AI Phishing ✅
 
 
 # ── Full analysis pipeline ────────────────────────────────────
