@@ -9,6 +9,9 @@
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 
 ---
+## Live Demo
+https://yashwip-phishing-analyzer.streamlit.app/
+---
 
 ## Overview
 
@@ -59,7 +62,7 @@ BMI = (Personalization Score   × 0.20)
 
 ---
 
-## 📊 Feature Categories
+## Feature Categories
 
 ### A) Linguistic Features
 | Feature | Description |
@@ -88,7 +91,7 @@ BMI = (Personalization Score   × 0.20)
 
 ---
 
-## 🤖 Models Trained
+## Models Trained
 
 | Model | Algorithm | Feature Set | Research Role |
 |-------|-----------|-------------|---------------|
