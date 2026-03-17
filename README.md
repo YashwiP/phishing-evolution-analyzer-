@@ -103,9 +103,9 @@ BMI = (Personalization Score   × 0.20)
 ```
 phishing-evolution-analyzer/
 │
-├── 📓 Phishing_Evolution_Analyzer.ipynb   ← Full Google Colab notebook
-├── 🌐 app.py                              ← Streamlit web application
-├── 📋 requirements.txt                    ← Python dependencies
+├── Phishing_Evolution_Analyzer.ipynb   ← Full Google Colab notebook
+├── app.py                              ← Streamlit web application
+├── requirements.txt                    ← Python dependencies
 │
 ├── data/
 │   ├── raw/
@@ -130,7 +130,7 @@ phishing-evolution-analyzer/
     │   ├── confusion_matrices.png
     │   ├── recall_comparison.png
     │   ├── model_summary.png
-    │   └── research_dashboard.png         ← ⭐ Main results figure
+    │   └── research_dashboard.png         ←  Main results figure
     └── reports/
         ├── model_comparison.csv
         └── full_results_report.csv
